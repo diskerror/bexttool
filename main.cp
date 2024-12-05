@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 			cout << "Displays or writes to the 'bext' chunk of a WAVE file" << endl;
 			cout << "    and displays contents of format ('fmt ') chunk." << endl;
 			cout << "Display data:       " << argv[0] << " <file>" << endl;
-			cout << "Write data to file: " << argv[0] << " <TAG> <file>" << endl;
+			cout << "Write data to file: " << argv[0] << " <TAG \"<TAG_DATA>\"> <file>" << endl;
 			cout <<
 				 R"EOF(
 TAGs can be one or more of (from Specification of the Broadcast Wave Format (BWF) pdf):
