@@ -244,7 +244,7 @@ TAGs can be one or more of (from Specification of the Broadcast Wave Format (BWF
 
 				//		update overall size in header
 				header.size += bextChunk.size + 8;
-				outStream.seekp(4, ios_base::beg);
+				outStream.seekp(4);
 				outStream.write((char *) &header.size, 4);
 			}
 
