@@ -27,7 +27,7 @@ using namespace std;
 int main(int argc, char **argv)
 {
 	auto exitVal = EXIT_SUCCESS;
-	
+
 	try
 	{
 		//  Check for input parameter.
@@ -51,101 +51,108 @@ TAGs can be one or more of (from Specification of the Broadcast Wave Format (BWF
 )EOF";
 			return exitVal;
 		}
-		
-		HeaderChunk_t          header;
-		Chunk_t                chunkExam;
+
+		HeaderChunk_t header;
+
 		FormatExtensibleData_t format;
-		size_t                 formatSize     = 0;
-		Size64Data_t           size64data;
-		size_t                 size64dataSize = 0;
-		BroadcastAudioExt_t    bExt;
-		size_t                 bextSize       = 0;
-		streampos              bextPositon    = 0;
-		
+		size_t                 formatSize = 0;
+
+		Size64Data_t size64data;
+		size_t       size64dataSize = sizeof(size64data);
+
+		BroadcastAudioExt_t bExt;
+		Chunk_t             bextChunk;
+		bextChunk.id   = 'bext';
+		bextChunk.size = sizeof(bExt);    //	602
+		streampos bextPositon = 0;
+
+		size_t    dataChunkSize    = 0;
+		streampos dataStartPositon = 0;    //	data starts after chunkID and size
+
 		//	Path to file is always the last argument.
 		string fileName(argv[argc - 1]);
-		
+
 		ifstream inStream(fileName.c_str(), ios_base::in | ios_base::binary);
 		if (!inStream.good())
 		{
 			throw invalid_argument("There was a problem opening the input file.");
 		}
-		
+
 		//	WAVE files always have a 12 byte header
-		inStream.read(reinterpret_cast<char *>(&header), 12);
-		if (!(header.id == 'RIFF' || header.id == 'RF64') || header.type != 'WAVE')
+		inStream.read((char *) &header, 12);
+		if (header.id != 'RIFF' && header.id != 'RF64')
 		{
 			inStream.close();
-			throw invalid_argument((fileName + "\n is not a WAVE file.").c_str());
+			throw invalid_argument((fileName + "\n is not a RIFF or RF64 file.").c_str());
 		}
-		
+
 		//	Identify and load pertinent Chunks.
 		while (inStream.good() && !inStream.eof())
 		{
-			inStream.read(reinterpret_cast<char *>(&chunkExam), 8);
-			
+			Chunk_t chunkExam{};
+
+			inStream.read((char *) &chunkExam, 8);
+
 			switch (chunkExam.id)
 			{
 				case 'fmt ':
 					formatSize = chunkExam.size;
-					inStream.read(reinterpret_cast<char *>(&format), formatSize);
+					inStream.read((char *) &format, formatSize);
 					break;
-				
+
 				case 'bext':
-					bextSize    = chunkExam.size;
 					bextPositon = inStream.tellg();
-					// Using sizeof(bExt) because we only want the basic size read.
-					inStream.read(reinterpret_cast<char *>(&bExt), sizeof(bExt));
-					inStream.seekg(inStream.tellg() + (streamoff) (bextSize - sizeof(bExt)));
+					//	Using sizeof(bExt) because we only want the basic size read.
+					inStream.read((char *) &bExt, bextChunk.size);
+					//	Now reposition stream pointer in case actual bext size is larger.
+					inStream.seekg(chunkExam.size - bextChunk.size, ios_base::cur);
 					break;
-				
+
 				case 'ds64':
 					//	Reading this only to know what to skip over.
-					size64dataSize = chunkExam.size;
-					inStream.read(reinterpret_cast<char *>(&size64data), size64dataSize);
+					inStream.read((char *) &size64data, size64dataSize);
 					break;
-				
+
 				case 'data':
-				{
-					streamoff tempSize =
-								  (chunkExam.size == 0xFFFFFFFF) ? size64data.dataSize : chunkExam.size;
-					inStream.seekg(inStream.tellg() + tempSize);
-				}
+					dataChunkSize    = (chunkExam.size == 0xFFFFFFFF) ? size64data.dataSize : chunkExam.size;
+					dataStartPositon = inStream.tellg();
+					inStream.seekg(dataChunkSize, ios_base::cur);
 					break;
-					
+
 					// skip over everything else
 				default:
-					inStream.seekg((uint32_t) inStream.tellg() + chunkExam.size);
+					inStream.seekg(chunkExam.size, ios_base::cur);
 					break;
 			}
 		}
-		
+
 		inStream.close();
-		
+
 		if (argc == 2)
 		{
 			cout << fileName << endl;
+			cout << "  Overall size: " << header.size << endl;
 			cout << endl;
 			cout << "FORMAT CHUNK ('fmt '):" << endl;
 			cout << "  LENGTH:  " << formatSize << endl;
-			cout << "type:               " << format.type << endl;
-			cout << "channelCount:       " << format.channelCount << endl;
-			cout << "sampleRate:         " << format.sampleRate << endl;
-			cout << "bytesPerSecond:     " << format.bytesPerSecond << endl;
-			cout << "blockAlignment:     " << format.blockAlignment << endl;
-			cout << "bitsPerSample:      " << format.bitsPerSample << endl;
-			
+			cout << "  type:               " << format.type << endl;
+			cout << "  channelCount:       " << format.channelCount << endl;
+			cout << "  sampleRate:         " << format.sampleRate << endl;
+			cout << "  bytesPerSecond:     " << format.bytesPerSecond << endl;
+			cout << "  blockAlignment:     " << format.blockAlignment << endl;
+			cout << "  bitsPerSample:      " << format.bitsPerSample << endl;
+
 			if (formatSize > 16)
 			{
-				cout << "cbSize:             " << format.cbSize << endl;
+				cout << "  cbSize:             " << format.cbSize << endl;
 			}
-			
+
 			if (formatSize >= 40)
 			{
 				ios::fmtflags f(cout.flags());
-				cout << "validBitsPerSample: " << format.validBitsPerSample << endl;
-				cout << "channelMask:        " << format.channelMask << endl;
-				cout << "subFormat:          " << hex;
+				cout << "  validBitsPerSample: " << format.validBitsPerSample << endl;
+				cout << "  channelMask:        " << format.channelMask << endl;
+				cout << "  subFormat:          " << hex;
 				cout << format.subFormat.data1 << "-";
 				cout << format.subFormat.data2 << "-";
 				cout << format.subFormat.data3 << "-";
@@ -153,17 +160,23 @@ TAGs can be one or more of (from Specification of the Broadcast Wave Format (BWF
 				cout << format.subFormat.data5 << endl;
 				std::cout.flags(f);
 			}
-			
+
 			cout << endl;
 			cout << "BROADCAST AUDIO EXTENSION ('bext'):" << endl;
-			cout << "  LENGTH:  " << bextSize << endl;
-			cout << "Description:         " << string(bExt.Description, 256) << endl;
-			cout << "Originator:          " << string(bExt.Originator, 32) << endl;
-			cout << "OriginatorReference: " << string(bExt.OriginatorReference, 32) << endl;
-			cout << "OriginationDate:     " << string(bExt.OriginationDate, 10) << endl;
-			cout << "OriginationTime:     " << string(bExt.OriginationTime, 8) << endl;
-			cout << "TimeReference:       " << bExt.TimeReference << endl;
-			cout << "Version:             " << bExt.Version << endl;
+			cout << "  LENGTH:  " << bextChunk.size << endl;
+			cout << "  Description:         " << string(bExt.Description, 256) << endl;
+			cout << "  Originator:          " << string(bExt.Originator, 32) << endl;
+			cout << "  OriginatorReference: " << string(bExt.OriginatorReference, 32) << endl;
+			cout << "  OriginationDate:     " << string(bExt.OriginationDate, 10) << endl;
+			cout << "  OriginationTime:     " << string(bExt.OriginationTime, 8) << endl;
+			cout << "  TimeReference:       " << bExt.TimeReference << endl;
+			cout << "  Version:             " << bExt.Version << endl;
+
+			cout << endl;
+			cout << "AUDIO DATA ('data'):" << endl;
+			cout << "  LENGTH:  " << dataChunkSize << endl;
+			cout << "  Audio sample start in file: " << dataStartPositon << endl;
+			cout << "  Total samples:              " << dataChunkSize / format.blockAlignment << endl;
 			cout << endl;
 		}
 		else
@@ -173,8 +186,8 @@ TAGs can be one or more of (from Specification of the Broadcast Wave Format (BWF
 			{
 				string tagName = argv[i];
 				string tagData = argv[i + 1];
-				tagData += string(255, '\0');
-				
+				tagData += string(255, '\0');   //  Set enough NULLs to fill unused part of field for all cases.
+
 				if (tagName == "-Description")
 				{
 					memcpy(bExt.Description, tagData.c_str(), 255);
@@ -208,45 +221,44 @@ TAGs can be one or more of (from Specification of the Broadcast Wave Format (BWF
 					throw invalid_argument(string("Invalid argument: ") + tagName + ". Bad tag name.");
 				}
 			}
-			
+
 			ofstream outStream(fileName.c_str(), ios_base::in | ios_base::out | ios_base::binary);
 			if (!outStream.good())
 			{
 				throw invalid_argument("There was a problem opening the file for writing.");
 			}
-			
+
 			if (bextPositon >= 12)
 			{
 				//		write over old 'bext' chunk
 				outStream.seekp(bextPositon);
-				outStream.write(reinterpret_cast<char *>(&bExt), streamsize(bextSize));
+				outStream.write((char *) &bExt, bextChunk.size);
 			}
 			else
 			{
 				//		write chunk at end of file
-				outStream.seekp(0, std::ios_base::end);
-				
-				outStream.write(("bext"), 4);
-				outStream.write(reinterpret_cast<char *>(&bextSize), streamsize(4));
-				outStream.write(reinterpret_cast<char *>(&bExt), streamsize(bextSize));
-				
+				outStream.seekp(0, ios_base::end);
+
+				outStream.write((char *) &bextChunk, 8);
+				outStream.write((char *) &bExt, bextChunk.size);
+
 				//		update overall size in header
-				header.size += bextSize;
-				outStream.seekp(4, ios::beg);
-				outStream.write(reinterpret_cast<char *>(&(header.size)), streamsize(4));
+				header.size += bextChunk.size + 8;
+				outStream.seekp(4, ios_base::beg);
+				outStream.write((char *) &header.size, 4);
 			}
-			
+
 			outStream.close();
 		}
-		
-		
+
+
 	} // try
 	catch (exception &e)
 	{
 		cerr << e.what() << endl;
 		exitVal = EXIT_FAILURE;
 	}
-	
+
 	return exitVal;
-	
+
 } // main
