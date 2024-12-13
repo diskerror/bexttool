@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -16,7 +17,6 @@
 #include <print>
 #include <sstream>
 #include <stdexcept>
-#include <cstdlib>
 #include <string>
 
 #include "Wave.h"
@@ -176,7 +176,7 @@ Setting or leaving the version number at zero will clear UMID and all loudness f
             cout << "  UMID[0-31]:           " << "0x";
             int c;
             for (c = 0; c < 32; c++) {
-                cout << std::setfill('0') << std::setw(2) << hex << (unsigned int) bExt.UMID[c] ;
+                cout << std::setfill('0') << std::setw(2) << hex << (unsigned int) bExt.UMID[c];
             }
             cout << endl;
             cout << "  UMID[32-63]:          " << "0x";
@@ -186,10 +186,10 @@ Setting or leaving the version number at zero will clear UMID and all loudness f
             cout << endl;
             cout.copyfmt(state);
 
-            if(bExt.LoudnessValue==0x7FFF){
+            if (bExt.LoudnessValue == 0x7FFF) {
                 cout << "  LoudnessValue:" << endl;
             }
-            else{
+            else {
                 cout << "  LoudnessValue:        " << (float_t) bExt.LoudnessValue / 100.0 << endl;
             }
 
@@ -225,8 +225,14 @@ Setting or leaving the version number at zero will clear UMID and all loudness f
             cout << "AUDIO DATA ('data'):" << endl;
             cout << "  LENGTH:  " << dataChunkSize << endl;
             cout << "  Audio sample start in file: " << dataStartPositon << endl;
-            cout << "  Total samples:              " << dataChunkSize / format.blockAlignment << endl;
-            cout << endl;
+            cout << "  Total time:                 ";
+            double_t seconds = ((double_t) dataChunkSize / format.blockAlignment) / format.sampleRate;
+            uint32_t hours = floor(seconds / 3600.0);
+            seconds = remainder(seconds, 3600.0);
+            uint32_t minutes = floor(seconds / 60.0);
+            seconds = remainder(seconds, 60.0);
+            cout << std::setfill('0') << std::setw(2) <<
+                 hours << ":" << minutes << ":" << std::setw(4) << seconds << endl;
         }
         else {
             //	parse options
