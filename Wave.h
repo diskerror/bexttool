@@ -42,24 +42,21 @@ using namespace boost::endian;
 #define SPEAKER_BITSTREAM_2_RIGHT 0x04000000
 
 // Parent class
-struct ChunkID
-{
-	big_uint32_t id;
+struct ChunkID {
+    big_uint32_t id;
 //	little_uint32_t size;
 };
 
-typedef struct Chunk : ChunkID
-{
+typedef struct Chunk : ChunkID {
 //	big_uint32_t    id;
-	little_uint32_t size;
-	char8_t         data[];
+    little_uint32_t size;
+    char8_t data[];
 } Chunk_t;
 
-typedef struct HeaderChunk : ChunkID
-{
+typedef struct HeaderChunk : ChunkID {
 //	big_uint32_t    id;
-	little_uint32_t size;
-	big_uint32_t    type;
+    little_uint32_t size;
+    big_uint32_t type;
 } HeaderChunk_t;
 
 
@@ -97,48 +94,43 @@ typedef struct HeaderChunk : ChunkID
 
 //	RF64 Size Chunk: id = 'big1' (this chunk is a big one)
 //		size of data in Data Chunk
-typedef struct Size64Chunk : ChunkID
-{
+typedef struct Size64Chunk : ChunkID {
 //	big_uint32_t   id;
-	little_int64_t size;
+    little_int64_t size;
 } ChunkSize64_t;
 
 //	Format data structure.
 //	Chunk data with type 'fmt ' and size 16 will have this structure.
-typedef struct FormatData
-{
-	little_uint16_t type;              // WAVE_FORMAT_PCM = 0x0001, etc.
-	little_uint16_t channelCount;      // 1 = mono, 2 = stereo, etc.
-	little_uint32_t sampleRate;        // 32000, 44100, 48000, etc.
-	little_uint32_t bytesPerSecond;    // average, only important for compressed formats
-	little_uint16_t blockAlignment;    // container size (in bytes) of one set of samples
-	little_uint16_t bitsPerSample;     // valid bits per sample 16, 20 or 24, etc.
+typedef struct FormatData {
+    little_uint16_t type;              // WAVE_FORMAT_PCM = 0x0001, etc.
+    little_uint16_t channelCount;      // 1 = mono, 2 = stereo, etc.
+    little_uint32_t sampleRate;        // 32000, 44100, 48000, etc.
+    little_uint32_t bytesPerSecond;    // average, only important for compressed formats
+    little_uint16_t blockAlignment;    // container size (in bytes) of one set of samples
+    little_uint16_t bitsPerSample;     // valid bits per sample 16, 20 or 24, etc.
 } FormatData_t;
 
 //	Chunk data with type 'fmt ' and size 18 will have this structure.
-typedef struct FormatPlusData : FormatData
-{
+typedef struct FormatPlusData : FormatData {
 //	little_uint16_t type;              // WAVE_FORMAT_PCM = 0x0001, etc.
 //	little_uint16_t channelCount;      // 1 = mono, 2 = stereo, etc.
 //	little_uint32_t sampleRate;        // 32000, 44100, 48000, etc.
 //	little_uint32_t bytesPerSecond;    // average, only important for compressed formats
 //	little_uint16_t blockAlignment;    // container size (in bytes) of one set of samples
 //	little_uint16_t bitsPerSample;     // valid bits per sample 16, 20 or 24, etc.
-	little_uint16_t cbSize;            // extra information (after cbSize) to store
+    little_uint16_t cbSize;            // extra information (after cbSize) to store
 } FormatPlusData_t;
 
-typedef struct Guid
-{
-	big_uint32_t data1;
-	big_uint16_t data2;
-	big_uint16_t data3;
-	big_uint32_t data4;
-	big_uint32_t data5;
+typedef struct Guid {
+    big_uint32_t data1;
+    big_uint16_t data2;
+    big_uint16_t data3;
+    big_uint32_t data4;
+    big_uint32_t data5;
 } Guid_t;
 
 //	Chunk data with type 'fmt ' and size 40 will have this structure.
-typedef struct FormatExtensibleData : FormatPlusData
-{
+typedef struct FormatExtensibleData : FormatPlusData {
 //	little_uint16_t type;              // WAVE_FORMAT_PCM = 0x0001, etc.
 //	little_uint16_t channelCount;      // 1 = mono, 2 = stereo, etc.
 //	little_uint32_t sampleRate;        // 32000, 44100, 48000, etc.
@@ -146,43 +138,41 @@ typedef struct FormatExtensibleData : FormatPlusData
 //	little_uint16_t blockAlignment;    // container size (in bytes) of one set of samples
 //	little_uint16_t bitsPerSample;     // valid bits per sample 16, 20 or 24, etc.
 //	little_uint16_t cbSize;            // extra information (after cbSize) to store
-	little_uint16_t validBitsPerSample;
-	little_uint32_t channelMask;
-	Guid_t          subFormat;
+    little_uint16_t validBitsPerSample;
+    little_uint32_t channelMask;
+    Guid_t subFormat;
 } FormatExtensibleData_t;
 
 //	Describes Broadcast Audio Extension data structure.
 //		id = 'best'
 //		size >= 602
-typedef struct BroadcastAudioExtension
-{
-	char           Description[256];          // ASCII : Description of the sound sequence
-	char           Originator[32];            // ASCII : Name of the originator
-	char           OriginatorReference[32];   // ASCII : Reference of the originator
-	char           OriginationDate[10];       // ASCII : yyyy:mm:dd
-	char           OriginationTime[8];        // ASCII : hh:mm:ss
-	little_int64_t TimeReference;             // First sample count since midnight
-	little_int16_t Version;                   // Version of the BWF; unsigned binary number
-	uint8_t        UMID[64];                  // Binary SMPTE UMID
-	little_int16_t LoudnessValue;       // Integrated Loudness Value of the file in LUFS x100
-	little_int16_t LoudnessRange;       // Maximum True Peak Level of the file expressed as dBTP x100
-	little_int16_t MaxTruePeakLevel;    // Maximum True Peak Level of the file expressed as dBTP x100
-	little_int16_t MaxMomentaryLoudness;  // Highest value of the Momentary Loudness Level of the file in LUFS (x100)
-	little_int16_t MaxShortTermLoudness;  // Highest value of the Short-Term Loudness Level of the file in LUFS (x100)
-	uint8_t        Reserved[180];     // Reserved for future use, set to NULL
-	char           CodingHistory[0];   // ASCII : History coding
+typedef struct BroadcastAudioExtension {
+    char Description[256];          // ASCII : Description of the sound sequence
+    char Originator[32];            // ASCII : Name of the originator
+    char OriginatorReference[32];   // ASCII : Reference of the originator
+    char OriginationDate[10];       // ASCII : yyyy:mm:dd
+    char OriginationTime[8];        // ASCII : hh:mm:ss
+    little_int64_t TimeReference;   // First sample count since midnight
+    little_int16_t Version;               // Version of the BWF; unsigned binary number
+    uint8_t UMID[64];                     // Binary SMPTE UMID
+    little_int16_t LoudnessValue;         // Integrated Loudness Value of the file in LUFS x100
+    little_uint16_t LoudnessRange;        // Maximum True Peak Level of the file expressed as dBTP x100
+    little_int16_t MaxTruePeakLevel;      // Maximum True Peak Level of the file expressed as dBTP x100
+    little_int16_t MaxMomentaryLoudness;  // Highest value of the Momentary Loudness Level of the file in LUFS (x100)
+    little_int16_t MaxShortTermLoudness;  // Highest value of the Short-Term Loudness Level of the file in LUFS (x100)
+    uint8_t Reserved[180];   // Reserved for future use, set to NULL
+    char CodingHistory[0];   // ASCII : History coding
 } BroadcastAudioExt_t;
 
 //	Describes size of data in 'data' chunk.
 //		id = 'ds64'
 //		size >= 28
-typedef struct Size64Data
-{
-	little_int64_t riffSize;       // size of RF64 block
-	little_int64_t dataSize;       // size of data chunk
-	little_int64_t sampleCount;    // sample count of fact chunk
-	little_int32_t tableLength;    // number of valid entries in array “table”
-	Size64Chunk    table[];
+typedef struct Size64Data {
+    little_int64_t riffSize;       // size of RF64 block
+    little_int64_t dataSize;       // size of data chunk
+    little_int64_t sampleCount;    // sample count of fact chunk
+    little_int32_t tableLength;    // number of valid entries in array “table”
+    Size64Chunk table[];
 } Size64Data_t;
 
 

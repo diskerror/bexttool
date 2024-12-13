@@ -1,6 +1,6 @@
 
 #	Compiler
-CP = clang++ -std=c++20
+CP = clang++ -std=c++23
 
 #	Boost version
 BV = 1.81
